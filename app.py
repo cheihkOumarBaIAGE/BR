@@ -9,7 +9,7 @@ import zipfile
 # -----------------------
 # Page config & constants
 # -----------------------
-st.set_page_config(page_title="Excel → CSV (Multi-Écoles)", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Hi, Bienvenue chez Minatoly", layout="wide", initial_sidebar_state="expanded")
 
 SCHOOLS = ["INGENIEUR", "MANAGEMENT", "DROIT", "MADIBA"]
 DATA_DIR = Path("data")

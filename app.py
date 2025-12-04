@@ -322,7 +322,7 @@ def df_to_bytes(df_obj: pd.DataFrame, index=False, header=True, encoding="utf-8-
 # -----------------------
 header_col1, header_col2 = st.columns([1, 4])
 with header_col1:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/8/84/Feather-flag-icon.png", width=64)
+    st.image("https://commons.wikimedia.org/wiki/File:Apollo-kop,_objectnr_A_12979.jpg", width=64)
 with header_col2:
     st.title("Excel → CSV — Multi-Écoles")
     st.markdown("Génère les exports (listes de diffusion, profils, inscriptions) à partir d'un Excel. Choisis l'école, upload l'Excel, télécharge les fichiers.")

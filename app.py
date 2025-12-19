@@ -9,7 +9,7 @@ import zipfile
 # -----------------------
 # Page config & constants
 # -----------------------
-st.set_page_config(page_title="Hi, Bienvenue chez Minatoly", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Hi", layout="wide", initial_sidebar_state="expanded")
 
 SCHOOLS = ["INGENIEUR", "GRADUATE", "MANAGEMENT", "DROIT", "MADIBA"]
 DATA_DIR = Path("data")
@@ -396,7 +396,7 @@ with st.sidebar:
 # Uploads & options
 # -----------------------
 # --- UPLOAD EXCEL ---
-st.subheader(f"1) Upload du fichier Excel pour : **{selected_school}**")
+st.subheader(f" Upload du fichier Excel pour : **{selected_school}**")
 
 uploaded_excel = st.file_uploader(
     "Importer le fichier Excel (.xls/.xlsx)",
@@ -408,7 +408,7 @@ st.markdown("---")
 # --- OPTIONS AVANCÉES ---
 show_adv = st.checkbox("Afficher options avancées")
 if show_adv:
-    st.info("Règle par défaut : un email est valide s'il se termine par '@gmail.com'")
+    st.info("Règle par défaut : un email est valide s'il se termine par '@ism.edu.sn'")
     st.write("Mapping utilisé pour cette école :")
     st.json(SCHOOL_MAPPINGS[selected_school])
 

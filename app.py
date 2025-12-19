@@ -395,24 +395,25 @@ with st.sidebar:
 # -----------------------
 # Uploads & options
 # -----------------------
+# --- UPLOAD EXCEL ---
 st.subheader(f"1) Upload du fichier Excel pour : **{selected_school}**")
-uploaded_excel = st.file_uploader("Importer le fichier Excel (.xls/.xlsx)", type=["xls", "xlsx"])
 
-st.markdown("**2) Mapping classes → group email (optionnel)**")
-col1, col2 = st.columns([2, 2])
-with col1:
-    mapping_file_uploaded = st.file_uploader("Uploader mapping CSV (optionnel)", type=["csv"])
-with col2:
-    mapping_textarea = st.text_area("Ou colle le mapping (une ligne = CLASSE,group@email.com)", height=100)
+uploaded_excel = st.file_uploader(
+    "Importer le fichier Excel (.xls/.xlsx)",
+    type=["xls", "xlsx"]
+)
 
 st.markdown("---")
+
+# --- OPTIONS AVANCÉES ---
 show_adv = st.checkbox("Afficher options avancées")
 if show_adv:
-    st.info("Règle par défaut: un email est valide s'il se termine par '@ism.edu.sn'. Modifie le code si besoin.")
+    st.info("Règle par défaut : un email est valide s'il se termine par '@gmail.com'")
+    st.write("Mapping utilisé pour cette école :")
     st.json(SCHOOL_MAPPINGS[selected_school])
 
+# --- BOUTON DE TRAITEMENT ---
 run = st.button("🚀 Lancer le traitement", type="primary")
-
 # -----------------------
 # Processing
 # -----------------------

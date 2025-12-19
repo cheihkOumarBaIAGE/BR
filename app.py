@@ -435,19 +435,6 @@ if run:
             st.success(f"Mapping chargé depuis {mapping_csv_path} ({len(mapping)} entrées).")
         except Exception as e:
             st.warning(f"Impossible de lire mapping.csv : {e}")
-    elif mapping_file_uploaded is not None:
-        try:
-            dfm = pd.read_csv(mapping_file_uploaded, dtype=str).fillna("")
-            cols = [c.strip() for c in dfm.columns]
-            c1 = cols[0]
-            c2 = cols[1] if len(cols) > 1 else cols[0]
-            mapping = dict(zip(dfm[c1].astype(str).str.upper().str.replace(r'\s+','',regex=True), dfm[c2].astype(str).str.strip()))
-            st.success(f"Mapping chargé depuis le fichier uploadé ({len(mapping)} entrées).")
-        except Exception as e:
-            st.error(f"Erreur lecture mapping uploadé : {e}")
-    elif mapping_textarea.strip():
-        mapping = parse_mapping_textarea(mapping_textarea)
-        st.info(f"Mapping parsé depuis la zone texte ({len(mapping)} entrées).")
     else:
         mapping = {k.upper().replace(" ", ""): v for k, v in SCHOOL_MAPPINGS[selected_school].items()}
         st.info(f"Mapping par défaut chargé depuis le code ({len(mapping)} entrées).")

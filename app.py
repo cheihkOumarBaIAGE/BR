@@ -257,6 +257,7 @@ SCHOOL_MAPPINGS = {
         "M1IDC-UXDESIGN": "mba1ux-2526@ism.edu.sn",
         "M1IRSD": "mba1info-2526@ism.edu.sn",
         "M1PROJETS": "mba1projet-2526@ism.edu.sn",
+        "M1PROJETSSOIR": "mba1projetsoir-2526@ism.edu.sn",
         "M1-MSSI": "mba1info-2526@ism.edu.sn",
         "MBA1-FINTECH": "mba1fintech-2526@ism.edu.sn",
         "MBA1-DATA-INTELLIGENCEARTIFICIELLE": "mba1ia-2526@ism.edu.sn",

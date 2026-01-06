@@ -134,6 +134,7 @@ SCHOOL_MAPPINGS = {
     "GRADUATE": {
         "MASTER1-BUSINESSADMINISTRATION": "mba1business.administration-2526@ism.edu.sn",
         "MASTER1-BUSINESSADMINISTRATIONSOIR": "mba1business.administrationsoir-2526@ism.edu.sn",
+        "LG3-ADMINISTRATIONDESAFFAIRESSOIR": "lg3-adm-affairessoir-2526@ism.edu.sn",
         "MASTER1-QHSE": "mba1qhse-2526@ism.edu.sn",
         "MASTER1-ACG": "mba1acg-2526@ism.edu.sn",
         "MASTER1-BANQUE-ASSURANCE": "mba1banque.assurance-2526@ism.edu.sn",

@@ -139,7 +139,7 @@ SCHOOL_MAPPINGS = {
         "MASTER1-BANQUE-ASSURANCE": "mba1banque.assurance-2526@ism.edu.sn",
         "MASTER1-CCE": "mba1cce-2526@ism.edu.sn",
         "MASTER1-FINANCEDIGITALE(FINTECH)": "mba1finance-digitale-2526@ism.edu.sn",
-        "MASTER1-FINANCEDEMARCHEETTRADING": "mba1finance-digitale-2526@ism.edu.sn",
+        "MASTER1-FINANCEDEMARCHEETTRADING": "mba1finance-de-marche-2526@ism.edu.sn",
         "MASTER1-GCL": "mba1gcl-2526@ism.edu.sn",
         "MASTER1-IF": "mba1if-2526@ism.edu.sn",
         "MASTER1-INTERNATIONALMANAGEMENT": "mba1international.management-2526@ism.edu.sn",

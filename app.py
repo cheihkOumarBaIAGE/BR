@@ -192,6 +192,7 @@ SCHOOL_MAPPINGS = {
         "MASTER2-MANAGEMENTDESENERGIESPÉTROLIÈRESETGAZIÈRES": "mba2management.pet.gaz-2526@ism.edu.sn",
     },
     "MADIBA": {
+        "MLI-R2": "mlir2-2526@ism.edu.sn",
         "JMI1": "jmi1-2526@ism.edu.sn",
         "LCM-1": "lcm1-2526@ism.edu.sn",
         "LCMFULLENGLISH-1": "lcm1bilingue-2526@ism.edu.sn",
@@ -208,7 +209,9 @@ SCHOOL_MAPPINGS = {
         "SPRI3-B": "spri3b-2526@ism.edu.sn",
         "SPRI3-C": "spri3c-2526@ism.edu.sn",
         "MASTER1SCIENCEPOLITIQUEETRELATIONSINTERNATIONALES": "mba1spri-2526@ism.edu.sn",
+        "M1-SPRISOIR": "mba1sprisoir-2526@ism.edu.sn",
         "MBA1-DIPLOMATIEETGÉOSTRATÉGIE": "mba1dg-2526@ism.edu.sn",
+        "MBA1-DIPLOMATIEETGÉOSTRATÉGIESOIR": "mba1dgsoir-2526@ism.edu.sn",
         "MBA1-Gestiondeprojetsculturels": "mba1gpc-2526@ism.edu.sn",
         "MBA1-CLRP": "mba1clrp-2526@ism.edu.sn",
         "MBA1-CLRPSOIR": "mba1clrpsoir-2526@ism.edu.sn",

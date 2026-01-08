@@ -132,6 +132,7 @@ SCHOOL_MAPPINGS = {
         "LG3-ORGA-GRHB": "lg3b-orga-grh2025-2026@ism.edu.sn",
     },
     "GRADUATE": {
+        "EMBA": "emba-2526@ism.edu.sn",
         "MASTER1-BUSINESSADMINISTRATION": "mba1business.administration-2526@ism.edu.sn",
         "MASTER1-BUSINESSADMINISTRATIONSOIR": "mba1business.administrationsoir-2526@ism.edu.sn",
         "LG3-ADMINISTRATIONDESAFFAIRESSOIR": "lg3-adm-affairessoir-2526@ism.edu.sn",

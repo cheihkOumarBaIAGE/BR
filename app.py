@@ -219,6 +219,8 @@ SCHOOL_MAPPINGS = {
         "MBA2-GOUVERNANCEETMANAGEMENTPUBLIC": "mba2gouvernance.management.public-2526@ism.edu.sn",
     },
     "INGENIEUR": {
+        "L1INGENIEURS-R2A": "l1r2.ingenieura@ism.edu.sn",
+        "L1INGENIEURS-R2B": "l1r2.ingenieurb@ism.edu.sn",
         "L1-CPD": "l1cpd-2526@ism.edu.sn",
         "L1A-IA(IAGE&TTL)": "l1aia-2526@ism.edu.sn",
         "L1B-IA(IAGE&TTL)": "l1bia-2526@ism.edu.sn",

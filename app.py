@@ -64,7 +64,7 @@ SCHOOL_MAPPINGS = {
         "M1-SOIRJURISTEDEBANQUEASSURANCE&COMPLIANCE": "mba1jbacsoir-2526@ism.edu.sn",
         "MBA2-ESGJURISTED'ENTREPRISE": "mba2jusristedentreprise-2526@ism.edu.sn",
         "MASTER2-PASSATIONDESMARCHÉS": "mba2passationdesmarches-2526@ism.edu.sn",
-        "MASTER2-PASSATIONDESMARCHÉS": "mba2passationdesmarchessoir-2526@ism.edu.sn",
+        "MASTER2-PASSATIONDESMARCHÉSSOIR": "mba2passationdesmarchessoir-2526@ism.edu.sn",
         "MASTER2-DROITDESAFFAIRES": "mba2droitdesaffaires-2526@ism.edu.sn",
         "MASTER2-DROITDESAFFAIRESCOURSDUSOIR": "mba2droitdesaffairessoir-2526@ism.edu.sn",
         "MASTER2-FISCALITÉ": "mba2fiscalite-2526@ism.edu.sn",

@@ -268,7 +268,7 @@ SCHOOL_MAPPINGS = {
         "MBA1-DATA-INTELLIGENCEARTIFICIELLE": "mba1ia-2526@ism.edu.sn",
         "MBA1-ActuariatBigDataetAssuranceQuantitative": "mba1actuariat-2526@ism.edu.sn",
         "MBA1-CDSD": "mba1cdsd-2526@ism.edu.sn",
-        "MBA2-DATA-INTELLIGENCEARTIFICIELLE": "mba1ia-2526@ism.edu.sn",
+        "MBA2-BIGDATA-INTELLIGENCEARTIFICIELLE": "mba2data_ia-2526@ism.edu.sn",
         "M2BIGDATA&DATASTRATÉGIE": "mba2bigdata-2526@ism.edu.sn",
         "M2MARKETINGDIGITAL&BRANDCONTENT": "mba2marketingdigital-2526@ism.edu.sn",
         "M2MSSI": "mba2mssi-2526@ism.edu.sn",

@@ -9,7 +9,7 @@ import zipfile
 # -----------------------
 # Page config & constants
 # -----------------------
-st.set_page_config(page_title="Hi", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ISM Automation Hub", layout="wide", initial_sidebar_state="expanded")
 
 SCHOOLS = ["INGENIEUR", "GRADUATE", "MANAGEMENT", "DROIT", "MADIBA"]
 DATA_DIR = Path("data")
@@ -17,7 +17,6 @@ DATA_DIR = Path("data")
 # -----------------------
 # Mappings fournis (par école)
 # -----------------------
-# NOTE: tu m'as fourni des paires email->email ; je les place ici en majuscules côté clé
 SCHOOL_MAPPINGS = {
     "DROIT": {
         "L1-JURISTED'ENTREPRISE": "lda1c-2025-2026@ism.edu.sn",
@@ -309,16 +308,6 @@ def read_cours_mapping(cours_dir: Path):
         mapping[classe_name] = codes
     return mapping
 
-def parse_mapping_textarea(text):
-    out = {}
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        if "," in line:
-            a, b = line.split(",", 1)
-            out[a.strip().upper().replace(" ", "")] = b.strip()
-    return out
-
 def read_mapping_csv(mapping_csv: Path):
     if not mapping_csv.exists():
         return {}
@@ -396,10 +385,10 @@ def df_to_bytes(df_obj: pd.DataFrame, index=False, header=True, encoding="utf-8-
 # -----------------------
 header_col1, header_col2 = st.columns([1, 4])
 with header_col1:
-    st.image("https://commons.wikimedia.org/wiki/File:Apollo-kop,_objectnr_A_12979.jpg", width=64)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Apollo_of_the_Belvedere.jpg", width=64)
 with header_col2:
-    st.title("Excel → CSV — Multi-Écoles")
-    st.markdown("Génère les exports (listes de diffusion, créations et inscriptions de profils sur BLU) à partir d'un export de liste d'éléves. Choisis l'école, upload le fichier, télécharge les fichiers.")
+    st.title("Excel → CSV — Automation Hub")
+    st.markdown("Transformez vos listes d'élèves en formats exploitables pour Google Groups et Blackboard.")
 
 st.markdown("---")
 
@@ -408,36 +397,63 @@ with st.sidebar:
     selected_school = st.selectbox("Choisir l'école", SCHOOLS)
     zip_opt = st.checkbox("Générer un ZIP contenant tous les fichiers", value=True)
     st.markdown("---")
-    st.caption("Les fichiers internes doivent être dans data/<ECOLE>/ (emails.txt + CoursParClasse/).")
+    st.caption("Assurez-vous que le dossier 'data' contient les fichiers emails.txt et CoursParClasse.")
 
 # -----------------------
-# Uploads & options
+# NEW TOOL: QUICK MANUAL MAPPING
 # -----------------------
-# --- UPLOAD EXCEL ---
-st.subheader(f" Upload du fichier Excel pour : **{selected_school}**")
-
-uploaded_excel = st.file_uploader(
-    "Importer le fichier Excel (.xls/.xlsx)",
-    type=["xls", "xlsx"]
-)
+with st.expander("🛠️ Générateur Manuel Rapide (Un code + Liste d'emails)"):
+    st.write("Idéal pour attribuer un code de cours à une liste d'emails copier-coller.")
+    col_m1, col_m2 = st.columns([1, 2])
+    
+    with col_m1:
+        manual_code = st.text_input("Code du cours", placeholder="Ex: M1-DATA-2025")
+    with col_m2:
+        manual_emails_input = st.text_area("Collez les emails ici (un par ligne)", height=150)
+    
+    if st.button("Générer le CSV Manuel (Code, Email)"):
+        if manual_code and manual_emails_input:
+            # Parse and clean emails
+            emails = [e.strip() for e in manual_emails_input.splitlines() if e.strip()]
+            
+            # Create the pair list
+            manual_df = pd.DataFrame({
+                "code": [manual_code] * len(emails),
+                "email": emails
+            })
+            
+            # Convert to CSV (No header, each line: code,email)
+            csv_buffer = BytesIO()
+            manual_df.to_csv(csv_buffer, index=False, header=False, encoding="utf-8-sig")
+            csv_buffer.seek(0)
+            
+            st.success(f"Généré avec succès : {len(emails)} emails associés au code '{manual_code}'.")
+            st.download_button(
+                label="📥 Télécharger CSV Manuel (Sans Entête)",
+                data=csv_buffer,
+                file_name=f"manuel_{manual_code}_{datetime.now().strftime('%H%M')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.warning("Veuillez entrer un code et au moins un email.")
 
 st.markdown("---")
 
-# --- OPTIONS AVANCÉES ---
-show_adv = st.checkbox("Afficher options avancées")
-if show_adv:
-    st.info("Règle par défaut : un email est valide s'il se termine par '@ism.edu.sn'")
-    st.write("Mapping utilisé pour cette école :")
+# -----------------------
+# MAIN UPLOAD & PROCESSING
+# -----------------------
+st.subheader(f"Traitement Principal — École : **{selected_school}**")
+uploaded_excel = st.file_uploader("Importer le fichier Excel des élèves", type=["xls", "xlsx"])
+
+# Show advanced mapping info
+if st.checkbox("Afficher le mapping interne"):
     st.json(SCHOOL_MAPPINGS[selected_school])
 
-# --- BOUTON DE TRAITEMENT ---
-run = st.button("🚀 Lancer le traitement", type="primary")
-# -----------------------
-# Processing
-# -----------------------
+run = st.button("🚀 Lancer le traitement global", type="primary")
+
 if run:
     if not uploaded_excel:
-        st.error("Veuillez uploader un fichier Excel avant de lancer le traitement.")
+        st.error("Veuillez uploader un fichier Excel avant de lancer.")
         st.stop()
 
     school_dir = DATA_DIR / selected_school
@@ -445,161 +461,74 @@ if run:
     cours_dir = school_dir / "CoursParClasse"
     mapping_csv_path = school_dir / "mapping.csv"
 
-    # mapping priority: mapping.csv in repo > uploaded csv > textarea > built-in
-    mapping = {}
+    # Mapping priority logic
     if mapping_csv_path.exists():
-        try:
-            mapping = read_mapping_csv(mapping_csv_path)
-            st.success(f"Mapping chargé depuis {mapping_csv_path} ({len(mapping)} entrées).")
-        except Exception as e:
-            st.warning(f"Impossible de lire mapping.csv : {e}")
+        mapping = read_mapping_csv(mapping_csv_path)
     else:
         mapping = {k.upper().replace(" ", ""): v for k, v in SCHOOL_MAPPINGS[selected_school].items()}
-        st.info(f"Mapping par défaut chargé depuis le code ({len(mapping)} entrées).")
 
-    # admins
     admins = read_emails_txt(emails_path)
-    if admins:
-        st.success(f"{len(admins)} admin(s) lus depuis {emails_path}.")
-    else:
-        st.warning(f"Aucun emails.txt trouvé dans {school_dir} — le fichier admins sera vide.")
-
-    # cours mapping
     classroom_course_mapping = read_cours_mapping(cours_dir)
-    if classroom_course_mapping:
-        st.success(f"{len(classroom_course_mapping)} fichier(s) de cours chargés depuis {cours_dir}.")
-    else:
-        st.warning(f"Aucun fichier de cours trouvé dans {cours_dir}. Les classes seront considérées sans codes.")
 
-    # read excel
     try:
-        df = pd.read_excel(uploaded_excel, dtype=str)
+        df_raw = pd.read_excel(uploaded_excel, dtype=str)
+        with st.spinner("Analyse des données..."):
+            results = process_dataframe(df_raw, mapping)
     except Exception as e:
-        st.error(f"Erreur lecture Excel : {e}")
+        st.error(f"Erreur de lecture : {e}")
         st.stop()
 
-    # process
-    try:
-        with st.spinner("Traitement en cours..."):
-            results = process_dataframe(df, mapping)
-    except Exception as e:
-        st.error(f"Erreur lors du traitement : {e}")
-        st.stop()
-
+    # Data separation
     mapped_export_df = results["mapped_export_df"]
     mapped_df = results["mapped_df"]
-    unmapped_df = results["unmapped_df"]
-    invalid_emails_df = results["invalid_emails_df"]
     profile_export_df = results["profile_export_df"]
 
-    # admin rows (one per group email from mapping)
+    # Admin management
     admin_rows = []
     for group_email in set(mapping.values()):
         for admin_email in admins:
             admin_rows.append({
-                "Group Email [Required]": group_email,
+                "Group Email [Required]": group_email, 
                 "Member Email": admin_email,
-                "Member Type": "USER",
+                "Member Type": "USER", 
                 "Member Role": "MANAGER"
             })
     admin_df = pd.DataFrame(admin_rows)
+    combined_diffusion = pd.concat([mapped_export_df, admin_df], ignore_index=True)
 
-    # combined
-    combined = pd.concat([mapped_export_df, admin_df], ignore_index=True) if not mapped_export_df.empty else admin_df
-
-    # course inscriptions
+    # Course auto-enrollment
     course_rows = []
-    classes_sans_code = set()
     for classe, group in mapped_df.groupby("Classroom Name"):
-        emails = group["Member Email"].dropna().str.strip().unique()
+        emails = group["Member Email"].dropna().unique()
         codes = classroom_course_mapping.get(classe, [])
-        if not codes:
-            classes_sans_code.add(classe)
         for email in emails:
             for code in codes:
                 course_rows.append([code, email, "", ""])
     course_df = pd.DataFrame(course_rows)
 
-    # report
-    now_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    report_lines = []
-    report_lines.append(f"Report — {selected_school} — {now_str}\n")
-    report_lines.append(f"Mapped classes: {mapped_df['Classroom Name'].nunique()}")
-    mapped_summary = mapped_df.drop_duplicates(subset=["Classroom Name", "Group Email [Required]"])
-    for _, r in mapped_summary.iterrows():
-        report_lines.append(f"- {r['Classroom Name']} -> {r['Group Email [Required]']}")
-    report_lines.append(f"\nUnmapped classes ({unmapped_df['Classroom Name'].nunique()}):")
-    for c in sorted(unmapped_df["Classroom Name"].dropna().unique()):
-        report_lines.append(f"- {c}")
-    report_lines.append(f"\nInvalid emails ({len(invalid_emails_df)}):")
-    for e in invalid_emails_df["Member Email"].dropna():
-        report_lines.append(f"- {e}")
-    report_lines.append("\nSummary counts:")
-    report_lines.append(f"- Utilisateurs mappés: {len(mapped_df)}")
-    report_lines.append(f"- Utilisateurs non mappés: {len(unmapped_df)}")
-    report_lines.append(f"- Emails ignorés: {len(invalid_emails_df)}")
-    report_lines.append(f"- Classes sans codes: {len(classes_sans_code)}")
-    if classes_sans_code:
-        report_lines.append("\nClasses sans codes:")
-        for c in sorted(classes_sans_code):
-            report_lines.append(f"- {c}")
-    report_text = "\n".join(report_lines)
-
-    # bytes
-    def make_bytes(obj):
-        b = BytesIO()
-        if isinstance(obj, pd.DataFrame):
-            obj.to_csv(b, index=False, header=True, encoding="utf-8-sig")
-        else:
-            b.write(str(obj).encode("utf-8"))
-        b.seek(0)
-        return b
-
-    fn_mise = f"mise_a_jour_liste_de_diffusion_{selected_school}_{now_str}.csv"
-    fn_admin = f"ajouter_membres_admin_{selected_school}_{now_str}.csv"
-    fn_profils = f"creation_profils_blackboard_{selected_school}_{now_str}.csv"
-    fn_courses = f"inscription_au_cours_en_ligne_{selected_school}_{now_str}.csv"
-    fn_report = f"rapport_du_script_{selected_school}_{now_str}.txt"
-
-    bytes_mise = make_bytes(combined) if not combined.empty else make_bytes(pd.DataFrame(columns=["Group Email [Required]","Member Email","Member Type","Member Role"]))
-    bytes_admin = make_bytes(admin_df)
-    bytes_profils = make_bytes(profile_export_df) if not profile_export_df.empty else make_bytes(pd.DataFrame(columns=["Nom d'utilisateur","Nom","Prénom","Adresse e-mail","Nouveau mot de passe"]))
-    # courses: no header
-    b_courses = BytesIO()
-    if not course_df.empty:
+    # UI Result display
+    st.success("✅ Fichiers prêts !")
+    now_str = datetime.now().strftime("%Y%m%d_%H%M")
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        st.download_button("📥 Liste de Diffusion (CSV)", df_to_bytes(combined_diffusion), f"diffusion_{selected_school}_{now_str}.csv")
+        st.download_button("📥 Profils Blackboard (CSV)", df_to_bytes(profile_export_df), f"profils_{selected_school}_{now_str}.csv")
+    
+    with col_d2:
+        # Special case: no header for course enrollment
+        b_courses = BytesIO()
         course_df.to_csv(b_courses, index=False, header=False, encoding="utf-8-sig")
-    b_courses.seek(0)
-    b_report = BytesIO(report_text.encode("utf-8"))
-    b_report.seek(0)
-
-    # downloads
-    st.success("✅ Traitement terminé")
-    st.markdown("### Fichiers générés — Téléchargements")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.download_button("Télécharger → mise_a_jour_liste_de_diffusion", bytes_mise, file_name=fn_mise, mime="text/csv")
-        st.download_button("Télécharger → ajouter_membres_admin", bytes_admin, file_name=fn_admin, mime="text/csv")
-        st.download_button("Télécharger → creation_profils_blackboard", bytes_profils, file_name=fn_profils, mime="text/csv")
-    with c2:
-        st.download_button("Télécharger → inscription_au_cours_en_ligne", b_courses, file_name=fn_courses, mime="text/csv")
-        st.download_button("Télécharger → rapport (TXT)", b_report, file_name=fn_report, mime="text/plain")
+        b_courses.seek(0)
+        st.download_button("📥 Inscriptions aux Cours (CSV)", b_courses, f"inscriptions_{selected_school}_{now_str}.csv")
 
     if zip_opt:
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr(fn_mise, bytes_mise.getvalue())
-            zf.writestr(fn_admin, bytes_admin.getvalue())
-            zf.writestr(fn_profils, bytes_profils.getvalue())
-            zf.writestr(fn_courses, b_courses.getvalue())
-            zf.writestr(fn_report, report_text)
-        zip_buffer.seek(0)
-        st.download_button("📦 Télécharger tout en ZIP", zip_buffer, file_name=f"export_{selected_school}_{now_str}.zip", mime="application/zip")
+        zip_buf = BytesIO()
+        with zipfile.ZipFile(zip_buf, "w") as zf:
+            zf.writestr("diffusion.csv", df_to_bytes(combined_diffusion).getvalue())
+            zf.writestr("profils.csv", df_to_bytes(profile_export_df).getvalue())
+            zf.writestr("inscriptions.csv", b_courses.getvalue())
+        zip_buf.seek(0)
+        st.download_button("📦 Télécharger tout (ZIP)", zip_buf, f"export_{selected_school}_{now_str}.zip")
 
-    st.markdown("### Aperçu rapide")
-    if not combined.empty:
-        st.dataframe(combined.head(200))
-    if not course_df.empty:
-        st.markdown("Extrait des inscriptions aux cours")
-        st.dataframe(course_df.head(200))
-
-    st.info("Tu peux corriger les mappings (upload CSV ou zone texte) puis relancer si besoin.")
+    st.info("Consultez les fichiers téléchargés. Vous pouvez utiliser l'outil manuel ci-dessus pour des ajustements rapides.")

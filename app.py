@@ -6,7 +6,7 @@ import streamlit as st
 
 # 1. Configuration de la page
 st.set_page_config(
-    page_title="RAJOUT MULTI-CLASSE", page_icon="🛠️", layout="centered"
+    page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
 )
 
 # Initialisation du session_state
@@ -25,17 +25,18 @@ def reset_form():
     st.session_state["invalid_corrections"] = {}
 
 
-st.title("🛠️ RAJOUT MULTI-CLASSE")
-st.write("Fonctionnalité permettant de rajouter simultanément plusieurs étudiants de  classes à un même cours en ligne.")
+st.title("🛠️ GÉNÉRATEUR MANUEL RAPIDE")
+st.write("Attribuez facilement un code de cours à une liste d'adresses email.")
 
 st.markdown("---")
 
-EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+# Expression régulière restreinte au domaine @ism.edu.sn
+EMAIL_ISM_REGEX = r"^[a-zA-Z0-9_.+-]+@ism\.edu\.sn$"
 
 
-def is_valid_email(email: str) -> bool:
-    """Vérifie le format d'un email."""
-    return re.match(EMAIL_REGEX, email) is not None
+def is_valid_ism_email(email: str) -> bool:
+    """Vérifie le format d'un email et s'assure qu'il appartient au domaine @ism.edu.sn."""
+    return re.match(EMAIL_ISM_REGEX, email) is not None
 
 
 # 2. Formulaire de saisie
@@ -50,13 +51,13 @@ with col1:
 
 with col2:
     manual_emails_input = st.text_area(
-        "Emails (un par ligne)",
-        placeholder="etudiant1@exemple.com\netudiant2@exemple.com",
+        "Emails (@ism.edu.sn)",
+        placeholder="etudiant1@ism.edu.sn\netudiant2@ism.edu.sn",
         height=150,
         key="manual_emails_input",
     )
 
-# Nettoyage automatique des espaces
+# Nettoyage automatique des espaces du code cours
 manual_code = manual_code_raw.replace(" ", "").upper()
 
 # Boutons d'action
@@ -72,15 +73,15 @@ with btn_col2:
 if generate_btn or "invalid_emails_list" in st.session_state:
     if manual_code and manual_emails_input:
         if generate_btn:
-            # .replace(" ", "") supprime TOUS les espaces (au début, au milieu, à la fin)
+            # Suppression des espaces et passage en minuscules
             raw_emails = [
                 e.replace(" ", "").lower()
                 for e in manual_emails_input.splitlines()
                 if e.replace(" ", "") != ""
             ]
 
-            valid_emails = [e for e in raw_emails if is_valid_email(e)]
-            invalid_emails = [e for e in raw_emails if not is_valid_email(e)]
+            valid_emails = [e for e in raw_emails if is_valid_ism_email(e)]
+            invalid_emails = [e for e in raw_emails if not is_valid_ism_email(e)]
 
             st.session_state["valid_emails_list"] = valid_emails
             st.session_state["invalid_emails_list"] = invalid_emails
@@ -91,10 +92,10 @@ if generate_btn or "invalid_emails_list" in st.session_state:
         valid_emails = st.session_state.get("valid_emails_list", [])
         invalid_emails = st.session_state.get("invalid_emails_list", [])
 
-        # Interface de correction
+        # Interface de correction pour les emails non conformes
         if invalid_emails:
             st.warning(
-                f"⚠️ **{len(invalid_emails)} email(s) au format invalide détecté(s).**"
+                f"⚠️ **{len(invalid_emails)} email(s) invalide(s) ou hors domaine `@ism.edu.sn` détecté(s).**"
             )
 
             with st.expander(
@@ -108,7 +109,6 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                         ),
                         key=f"corr_{idx}",
                     )
-                    # Nettoyage automatique des espaces également sur la saisie de correction
                     st.session_state["invalid_corrections"][bad_email] = (
                         new_email.replace(" ", "").lower()
                     )
@@ -121,14 +121,14 @@ if generate_btn or "invalid_emails_list" in st.session_state:
             for original, corrected in st.session_state[
                 "invalid_corrections"
             ].items():
-                if corrected and is_valid_email(corrected):
+                if corrected and is_valid_ism_email(corrected):
                     fixed_emails.append(corrected)
                 elif corrected:
                     still_invalid.append(corrected)
 
             if still_invalid:
                 st.error(
-                    f"Certaines adresses sont toujours invalides : {', '.join(still_invalid)}"
+                    f"Certaines adresses ne respectent toujours pas la forme `@ism.edu.sn` : {', '.join(still_invalid)}"
                 )
 
             all_valid_emails = valid_emails + fixed_emails
@@ -144,7 +144,7 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 f"ℹ️ {duplicates_count} doublon(s) supprimé(s) automatiquement."
             )
 
-        # Génération CSV
+        # Génération du CSV
         if unique_emails:
             manual_df = pd.DataFrame(
                 {
@@ -160,16 +160,10 @@ if generate_btn or "invalid_emails_list" in st.session_state:
             csv_buffer.seek(0)
 
             st.success(
-                f"✅ CSV prêt avec **{len(unique_emails)} email(s) valide(s)** !"
+                f"✅ CSV prêt avec **{len(unique_emails)} email(s) `@ism.edu.sn` valide(s)** !"
             )
 
             st.download_button(
                 label="📥 Télécharger le fichier CSV",
                 data=csv_buffer,
                 file_name=f"manuel_{manual_code}.csv",
-                mime="text/csv",
-            )
-        else:
-            st.error("Aucun email valide disponible pour la génération.")
-    else:
-        st.error("Veuillez remplir le code de cours et la liste d'emails.")

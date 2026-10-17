@@ -9,17 +9,20 @@ st.set_page_config(
     page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
 )
 
-# Initialisation du session_state pour permettre la réinitialisation
+# Initialisation des variables dans le session_state
 if "manual_code_input" not in st.session_state:
     st.session_state["manual_code_input"] = ""
 if "manual_emails_input" not in st.session_state:
     st.session_state["manual_emails_input"] = ""
+if "invalid_corrections" not in st.session_state:
+    st.session_state["invalid_corrections"] = {}
 
 
 def reset_form():
-    """Efface le contenu des champs de saisie."""
+    """Efface le contenu des champs de saisie et les réinitialisations."""
     st.session_state["manual_code_input"] = ""
     st.session_state["manual_emails_input"] = ""
+    st.session_state["invalid_corrections"] = {}
 
 
 st.title("🛠️ GÉNÉRATEUR MANUEL RAPIDE")
@@ -36,7 +39,7 @@ def is_valid_email(email: str) -> bool:
     return re.match(EMAIL_REGEX, email) is not None
 
 
-# 2. Formulaire de saisie
+# 2. Formulaire de saisie principal
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -58,69 +61,35 @@ with col2:
 btn_col1, btn_col2 = st.columns([3, 1])
 
 with btn_col1:
-    generate_btn = st.button("🚀 Générer le fichier CSV", type="primary")
+    generate_btn = st.button("🚀 Analyser & Générer le CSV", type="primary")
 
 with btn_col2:
     st.button("🗑️ Vider", on_click=reset_form, help="Réinitialiser le formulaire")
 
-# 3. Traitement, Validation et Dédoublonnage
-if generate_btn:
+# 3. Traitement, Détection & Correction
+if generate_btn or "invalid_emails_list" in st.session_state:
     if manual_code and manual_emails_input:
-        # Nettoyage de la saisie utilisateur (passage en minuscules pour détecter les doublons)
-        raw_emails = [
-            e.strip().lower()
-            for e in manual_emails_input.splitlines()
-            if e.strip()
-        ]
+        # Traitement initial lors du clic sur le bouton principal
+        if generate_btn:
+            raw_emails = [
+                e.strip().lower()
+                for e in manual_emails_input.splitlines()
+                if e.strip()
+            ]
 
-        # Filtrage des formats d'email valides / invalides
-        valid_emails = [e for e in raw_emails if is_valid_email(e)]
-        invalid_emails = [e for e in raw_emails if not is_valid_email(e)]
+            valid_emails = [e for e in raw_emails if is_valid_email(e)]
+            invalid_emails = [e for e in raw_emails if not is_valid_email(e)]
 
-        # Dédoublonnage tout en préservant l'ordre d'origine
-        unique_valid_emails = list(dict.fromkeys(valid_emails))
-        duplicates_count = len(valid_emails) - len(unique_valid_emails)
+            st.session_state["valid_emails_list"] = valid_emails
+            st.session_state["invalid_emails_list"] = invalid_emails
+            st.session_state["invalid_corrections"] = {
+                e: e for e in invalid_emails
+            }
 
-        # Retours d'information à l'utilisateur
+        valid_emails = st.session_state.get("valid_emails_list", [])
+        invalid_emails = st.session_state.get("invalid_emails_list", [])
+
+        # --- SECTION DE CORRECTION DES EMAILS INVALIDES ---
         if invalid_emails:
             st.warning(
-                f"⚠️ {len(invalid_emails)} email(s) au format invalide ignoré(s) : "
-                + ", ".join(invalid_emails)
-            )
-
-        if duplicates_count > 0:
-            st.info(
-                f"ℹ️ {duplicates_count} doublon(s) détecté(s) et supprimé(s) automatiquement."
-            )
-
-        if unique_valid_emails:
-            # Création du DataFrame Pandas avec la liste nettoyée et unique
-            manual_df = pd.DataFrame(
-                {
-                    "code": [manual_code] * len(unique_valid_emails),
-                    "email": unique_valid_emails,
-                }
-            )
-
-            # Conversion du DataFrame en buffer CSV
-            csv_buffer = BytesIO()
-            manual_df.to_csv(
-                csv_buffer, index=False, header=False, encoding="utf-8-sig"
-            )
-            csv_buffer.seek(0)
-
-            st.success(
-                f"✅ CSV généré avec succès pour {len(unique_valid_emails)} email(s) unique(s) !"
-            )
-
-            # Bouton de téléchargement
-            st.download_button(
-                label="📥 Télécharger le fichier CSV",
-                data=csv_buffer,
-                file_name=f"manuel_{manual_code}.csv",
-                mime="text/csv",
-            )
-        else:
-            st.error("Aucun email valide n'a été trouvé dans votre saisie.")
-    else:
-        st.error("Veuillez remplir le code de cours et la liste d'emails.")
+                f"⚠️ **{len(invalid_emails)} email(s) au

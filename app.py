@@ -9,27 +9,30 @@ st.set_page_config(
     page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
 )
 
-# Initialisation des variables dans le session_state
+# Initialisation du session_state
 if "manual_code_input" not in st.session_state:
     st.session_state["manual_code_input"] = ""
 if "manual_emails_input" not in st.session_state:
     st.session_state["manual_emails_input"] = ""
 if "invalid_corrections" not in st.session_state:
     st.session_state["invalid_corrections"] = {}
+if "analyzed" not in st.session_state:
+    st.session_state["analyzed"] = False
 
 
 def reset_form():
-    """Efface le contenu des champs de saisie."""
+    """Efface le contenu des champs de saisie et réinitialise l'état."""
     st.session_state["manual_code_input"] = ""
     st.session_state["manual_emails_input"] = ""
     st.session_state["invalid_corrections"] = {}
+    st.session_state["invalid_emails_list"] = []
+    st.session_state["valid_emails_list"] = []
+    st.session_state["analyzed"] = False
 
 
 def get_special_characters(text: str) -> list[str]:
-    """Extrait et retourne la liste unique des caractères spéciaux / symboles non alphanumériques."""
-    # Trouve tout ce qui N'EST PAS une lettre ou un chiffre (y compris espaces, accents, symboles)
+    """Extrait la liste des caractères non alphanumériques."""
     bad_chars = re.findall(r"[^a-zA-Z0-9]", text)
-    # Dédoublonnage en conservant la visibilité (remplace les espaces par 'Espace')
     display_chars = []
     for c in set(bad_chars):
         if c == " ":
@@ -40,7 +43,7 @@ def get_special_characters(text: str) -> list[str]:
 
 
 def clean_course_code(code: str) -> str:
-    """Conserve uniquement les lettres et les chiffres en majuscules (supprime ', ², /, ., etc.)."""
+    """Conserve uniquement les lettres et les chiffres en majuscules."""
     return re.sub(r"[^a-zA-Z0-9]", "", code).upper()
 
 
@@ -49,12 +52,11 @@ st.write("Attribuez facilement un code de cours à une liste d'adresses email.")
 
 st.markdown("---")
 
-# Expression régulière restreinte au domaine @ism.edu.sn
 EMAIL_ISM_REGEX = r"^[a-zA-Z0-9_.+-]+@ism\.edu\.sn$"
 
 
 def is_valid_ism_email(email: str) -> bool:
-    """Vérifie le format d'un email et s'assure qu'il appartient au domaine @ism.edu.sn."""
+    """Vérifie le format d'un email @ism.edu.sn."""
     return re.match(EMAIL_ISM_REGEX, email) is not None
 
 
@@ -80,40 +82,45 @@ with col2:
 btn_col1, btn_col2 = st.columns([3, 1])
 
 with btn_col1:
-    generate_btn = st.button("🚀 Analyser & Générer le CSV", type="primary")
+    if st.button("🚀 Analyser & Générer le CSV", type="primary"):
+        st.session_state["analyzed"] = True
+        st.session_state.pop("invalid_emails_list", None)
 
 with btn_col2:
     st.button("🗑️ Vider", on_click=reset_form, help="Réinitialiser le formulaire")
 
-# 3. Traitement, Détection des Caractères Spéciaux & Correction
-if generate_btn or "invalid_emails_list" in st.session_state:
+# 3. Traitement, Détection & Correction
+if st.session_state["analyzed"]:
     if manual_code_raw and manual_emails_input:
-        
+
         # Détection des caractères spéciaux dans le code du cours
         detected_bad_chars = get_special_characters(manual_code_raw)
-        
+
         if detected_bad_chars:
             cleaned_code_proposal = clean_course_code(manual_code_raw)
             st.warning(
                 f"⚠️ **Caractère(s) non autorisé(s) détecté(s) dans le code du cours :** "
                 f"{', '.join(detected_bad_chars)}"
             )
-            
+
             if cleaned_code_proposal:
-                st.info(f"💡 **Proposition de nettoyage :** `{manual_code_raw}` ➡️ **`{cleaned_code_proposal}`**")
+                st.info(
+                    f"💡 **Proposition de nettoyage :** `{manual_code_raw}` ➡️ **`{cleaned_code_proposal}`**"
+                )
                 if st.button("🧹 Supprimer ces caractères et continuer"):
                     st.session_state["manual_code_input"] = cleaned_code_proposal
                     st.rerun()
             else:
-                st.error("Le code saisi ne contient aucun caractère alphanumérique valide.")
-            
-            # Bloque le traitement tant que le code n'est pas nettoyé
+                st.error(
+                    "Le code saisi ne contient aucun caractère alphanumérique valide."
+                )
+
             st.stop()
-        
+
         manual_code = manual_code_raw.upper()
 
-        if generate_btn:
-            # Nettoyage des emails (suppression des espaces)
+        # Analyse initiale des emails si pas encore analysés
+        if "invalid_emails_list" not in st.session_state:
             raw_emails = [
                 e.replace(" ", "").lower()
                 for e in manual_emails_input.splitlines()
@@ -177,7 +184,7 @@ if generate_btn or "invalid_emails_list" in st.session_state:
         else:
             all_valid_emails = valid_emails
 
-        # Dédoublonnage des emails
+        # Dédoublonnage
         unique_emails = list(dict.fromkeys(all_valid_emails))
         duplicates_count = len(all_valid_emails) - len(unique_emails)
 
@@ -207,7 +214,7 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 hide_index=True,
             )
 
-            # Conversion du DataFrame en buffer CSV
+            # Conversion en CSV
             csv_buffer = BytesIO()
             manual_df.to_csv(
                 csv_buffer, index=False, header=False, encoding="utf-8-sig"

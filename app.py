@@ -167,3 +167,9 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 label="📥 Télécharger le fichier CSV",
                 data=csv_buffer,
                 file_name=f"manuel_{manual_code}.csv",
+                mime="text/csv",
+            )
+        else:
+            st.error("Aucun email valide `@ism.edu.sn` disponible pour la génération.")
+    else:
+        st.error("Veuillez remplir le code de cours et la liste d'emails.")

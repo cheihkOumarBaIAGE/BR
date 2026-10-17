@@ -92,4 +92,86 @@ if generate_btn or "invalid_emails_list" in st.session_state:
         # --- SECTION DE CORRECTION DES EMAILS INVALIDES ---
         if invalid_emails:
             st.warning(
-                f"⚠️ **{len(invalid_emails)} email(s) au
+                f"⚠️ **{len(invalid_emails)} email(s) au format invalide détecté(s).** "
+                "Vous pouvez les corriger directement ci-dessous :"
+            )
+
+            # Formulaire d'édition pour les adresses erronées
+            with st.expander(
+                "✏️ Modifier les adresses incorrectes", expanded=True
+            ):
+                corrected_from_form = []
+                for idx, bad_email in enumerate(invalid_emails):
+                    new_email = st.text_input(
+                        f"Corriger l'adresse #{idx+1}",
+                        value=st.session_state["invalid_corrections"].get(
+                            bad_email, bad_email
+                        ),
+                        key=f"corr_{idx}",
+                    )
+                    st.session_state["invalid_corrections"][bad_email] = (
+                        new_email.strip().lower()
+                    )
+
+                if st.button("🔄 Appliquer les corrections"):
+                    st.rerun()
+
+            # Récupération des emails corrigés qui sont maintenant valides
+            fixed_emails = []
+            still_invalid = []
+            for original, corrected in st.session_state[
+                "invalid_corrections"
+            ].items():
+                if corrected and is_valid_email(corrected):
+                    fixed_emails.append(corrected)
+                elif corrected:
+                    still_invalid.append(corrected)
+
+            if still_invalid:
+                st.error(
+                    f"Certaines adresses sont toujours invalides : {', '.join(still_invalid)}"
+                )
+
+            # Fusion des emails valides initiaux + les emails corrigés
+            all_valid_emails = valid_emails + fixed_emails
+        else:
+            all_valid_emails = valid_emails
+
+        # Dédoublonnage des emails valides (conservant l'ordre)
+        unique_emails = list(dict.fromkeys(all_valid_emails))
+        duplicates_count = len(all_valid_emails) - len(unique_emails)
+
+        if duplicates_count > 0:
+            st.info(
+                f"ℹ️ {duplicates_count} doublon(s) supprimé(s) automatiquement."
+            )
+
+        # Génération du CSV si au moins une adresse valide existe
+        if unique_emails:
+            manual_df = pd.DataFrame(
+                {
+                    "code": [manual_code] * len(unique_emails),
+                    "email": unique_emails,
+                }
+            )
+
+            csv_buffer = BytesIO()
+            manual_df.to_csv(
+                csv_buffer, index=False, header=False, encoding="utf-8-sig"
+            )
+            csv_buffer.seek(0)
+
+            st.success(
+                f"✅ CSV prêt avec **{len(unique_emails)} email(s) valide(s)** !"
+            )
+
+            st.download_button(
+                label="📥 Télécharger le fichier CSV",
+                data=csv_buffer,
+                file_name=f"manuel_{manual_code}.csv",
+                mime="text/csv",
+            )
+        else:
+            st.error("Aucun email valide n'est disponible pour la génération.")
+    else:
+        st.error("Veuillez remplir le code de cours et la liste d'emails.")

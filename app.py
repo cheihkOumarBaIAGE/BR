@@ -1,138 +1,126 @@
 # app.py
 from io import BytesIO
-from pathlib import Path
+import re
 import pandas as pd
 import streamlit as st
 
-# 1. Configuration de la page (DOIT ÊTRE LA PREMIÈRE COMMANDE STREAMLIT)
+# 1. Configuration de la page
 st.set_page_config(
-    page_title="ISM Automation Hub", page_icon="🔐", layout="wide"
+    page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
 )
 
-# -----------------------
-# 2. CONFIGURATION DE L'AUTHENTIFICATION
-# -----------------------
-# Recommandation : déplacer dans .streamlit/secrets.toml en production
-USER_DB = {
-    "admin": {"password": "admin123", "role": "admin"},
-    "ecole_user": {"password": "ism2025", "role": "manager"},
-    "quick_user": {"password": "quickpax", "role": "quick_user"},
-}
+# Initialisation du session_state pour permettre la réinitialisation
+if "manual_code_input" not in st.session_state:
+    st.session_state["manual_code_input"] = ""
+if "manual_emails_input" not in st.session_state:
+    st.session_state["manual_emails_input"] = ""
 
 
-def check_password():
-    """Vérifie les identifiants et gère la session utilisateur."""
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
-
-    if not st.session_state["authenticated"]:
-        st.title("🔐 Accès Restreint - ISM Automation")
-
-        with st.form("login_form"):
-            user = st.text_input("Nom d'utilisateur")
-            pwd = st.text_input("Mot de passe", type="password")
-            submit = st.form_submit_button("Se connecter")
-
-            if submit:
-                if user in USER_DB and USER_DB[user]["password"] == pwd:
-                    st.session_state["authenticated"] = True
-                    st.session_state["user_role"] = USER_DB[user]["role"]
-                    st.rerun()
-                else:
-                    st.error("Utilisateur ou mot de passe incorrect.")
-        return False
-    return True
+def reset_form():
+    """Efface le contenu des champs de saisie."""
+    st.session_state["manual_code_input"] = ""
+    st.session_state["manual_emails_input"] = ""
 
 
-# -----------------------
-# 3. APPLICATION PRINCIPALE
-# -----------------------
-if check_password():
-    # Barre latérale - Profil & Déconnexion
-    with st.sidebar:
-        st.write(
-            f"Connecté en tant que : **{st.session_state['user_role'].upper()}**"
-        )
-        if st.button("Se déconnecter"):
-            st.session_state["authenticated"] = False
-            st.session_state.pop("user_role", None)
-            st.rerun()
-        st.markdown("---")
+st.title("🛠️ GÉNÉRATEUR MANUEL RAPIDE")
+st.write("Attribuez facilement un code de cours à une liste d'adresses email.")
 
-    user_role = st.session_state["user_role"]
+st.markdown("---")
 
-    # --- SECTION A: GÉNÉRATEUR MANUEL RAPIDE ---
-    if user_role in ["admin", "quick_user"]:
-        with st.expander(
-            "🛠️ GÉNÉRATEUR MANUEL RAPIDE", expanded=(user_role == "quick_user")
-        ):
-            st.write(
-                "Idéal pour attribuer un code de cours à une liste d'emails."
+# Expression régulière pour valider le format standard d'un email
+EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+
+
+def is_valid_email(email: str) -> bool:
+    """Vérifie le format d'un email."""
+    return re.match(EMAIL_REGEX, email) is not None
+
+
+# 2. Formulaire de saisie
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    manual_code = st.text_input(
+        "Code du cours",
+        placeholder="ex: INF101",
+        key="manual_code_input",
+    )
+
+with col2:
+    manual_emails_input = st.text_area(
+        "Emails (un par ligne)",
+        placeholder="etudiant1@exemple.com\netudiant2@exemple.com",
+        height=150,
+        key="manual_emails_input",
+    )
+
+# Boutons d'action
+btn_col1, btn_col2 = st.columns([3, 1])
+
+with btn_col1:
+    generate_btn = st.button("🚀 Générer le fichier CSV", type="primary")
+
+with btn_col2:
+    st.button("🗑️ Vider", on_click=reset_form, help="Réinitialiser le formulaire")
+
+# 3. Traitement, Validation et Dédoublonnage
+if generate_btn:
+    if manual_code and manual_emails_input:
+        # Nettoyage de la saisie utilisateur (passage en minuscules pour détecter les doublons)
+        raw_emails = [
+            e.strip().lower()
+            for e in manual_emails_input.splitlines()
+            if e.strip()
+        ]
+
+        # Filtrage des formats d'email valides / invalides
+        valid_emails = [e for e in raw_emails if is_valid_email(e)]
+        invalid_emails = [e for e in raw_emails if not is_valid_email(e)]
+
+        # Dédoublonnage tout en préservant l'ordre d'origine
+        unique_valid_emails = list(dict.fromkeys(valid_emails))
+        duplicates_count = len(valid_emails) - len(unique_valid_emails)
+
+        # Retours d'information à l'utilisateur
+        if invalid_emails:
+            st.warning(
+                f"⚠️ {len(invalid_emails)} email(s) au format invalide ignoré(s) : "
+                + ", ".join(invalid_emails)
             )
-            col_m1, col_m2 = st.columns([1, 2])
 
-            with col_m1:
-                manual_code = st.text_input(
-                    "Code du cours", key="manual_code_input"
-                )
-            with col_m2:
-                manual_emails_input = st.text_area(
-                    "Emails (un par ligne)", key="manual_emails_input"
-                )
+        if duplicates_count > 0:
+            st.info(
+                f"ℹ️ {duplicates_count} doublon(s) détecté(s) et supprimé(s) automatiquement."
+            )
 
-            if st.button("Générer le CSV Manuel"):
-                if manual_code and manual_emails_input:
-                    emails = [
-                        e.strip()
-                        for e in manual_emails_input.splitlines()
-                        if e.strip()
-                    ]
-                    manual_df = pd.DataFrame(
-                        {"code": [manual_code] * len(emails), "email": emails}
-                    )
+        if unique_valid_emails:
+            # Création du DataFrame Pandas avec la liste nettoyée et unique
+            manual_df = pd.DataFrame(
+                {
+                    "code": [manual_code] * len(unique_valid_emails),
+                    "email": unique_valid_emails,
+                }
+            )
 
-                    csv_buffer = BytesIO()
-                    manual_df.to_csv(
-                        csv_buffer,
-                        index=False,
-                        header=False,
-                        encoding="utf-8-sig",
-                    )
-                    csv_buffer.seek(0)
+            # Conversion du DataFrame en buffer CSV
+            csv_buffer = BytesIO()
+            manual_df.to_csv(
+                csv_buffer, index=False, header=False, encoding="utf-8-sig"
+            )
+            csv_buffer.seek(0)
 
-                    st.download_button(
-                        label="📥 Télécharger CSV",
-                        data=csv_buffer,
-                        file_name=f"manuel_{manual_code}.csv",
-                        mime="text/csv",
-                    )
-                else:
-                    st.warning("Veuillez remplir tous les champs.")
+            st.success(
+                f"✅ CSV généré avec succès pour {len(unique_valid_emails)} email(s) unique(s) !"
+            )
 
-    # --- SECTION B: TRAITEMENT PRINCIPAL ---
-    if user_role in ["admin", "manager"]:
-        if user_role == "admin":
-            st.markdown("---")
-
-        st.subheader("🎓 TRAITEMENT PRINCIPAL — ÉCOLE")
-
-        SCHOOLS = ["INGENIEUR", "GRADUATE", "MANAGEMENT", "DROIT", "MADIBA"]
-        DATA_DIR = Path("data")
-
-        selected_school = st.selectbox("Choisir l'école", SCHOOLS)
-        uploaded_excel = st.file_uploader(
-            "Importer le fichier Excel", type=["xls", "xlsx"]
-        )
-
-        if st.button("🚀 Lancer le traitement global", type="primary"):
-            if not uploaded_excel:
-                st.error("Veuillez importer un fichier Excel d'abord.")
-            else:
-                # Placer ici la logique d'extraction / traitement Pandas
-                st.success(f"Traitement terminé avec succès pour {selected_school} !")
-
-    # Sécurité supplémentaire si rôle non reconnu
-    if user_role not in ["admin", "manager", "quick_user"]:
-        st.warning(
-            "Vous n'avez pas de permissions assignées. Contactez l'administrateur."
-        )
+            # Bouton de téléchargement
+            st.download_button(
+                label="📥 Télécharger le fichier CSV",
+                data=csv_buffer,
+                file_name=f"manuel_{manual_code}.csv",
+                mime="text/csv",
+            )
+        else:
+            st.error("Aucun email valide n'a été trouvé dans votre saisie.")
+    else:
+        st.error("Veuillez remplir le code de cours et la liste d'emails.")

@@ -69,11 +69,10 @@ with btn_col1:
 with btn_col2:
     st.button("🗑️ Vider", on_click=reset_form, help="Réinitialiser le formulaire")
 
-# 3. Traitement
+# 3. Traitement & Prévisualisation
 if generate_btn or "invalid_emails_list" in st.session_state:
     if manual_code and manual_emails_input:
         if generate_btn:
-            # Suppression des espaces et passage en minuscules
             raw_emails = [
                 e.replace(" ", "").lower()
                 for e in manual_emails_input.splitlines()
@@ -92,7 +91,7 @@ if generate_btn or "invalid_emails_list" in st.session_state:
         valid_emails = st.session_state.get("valid_emails_list", [])
         invalid_emails = st.session_state.get("invalid_emails_list", [])
 
-        # Interface de correction pour les emails non conformes
+        # Interface de correction
         if invalid_emails:
             st.warning(
                 f"⚠️ **{len(invalid_emails)} email(s) invalide(s) ou hors domaine `@ism.edu.sn` détecté(s).**"
@@ -144,30 +143,41 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 f"ℹ️ {duplicates_count} doublon(s) supprimé(s) automatiquement."
             )
 
-        # Génération du CSV
+        # Génération du DataFrame & Prévisualisation
         if unique_emails:
             manual_df = pd.DataFrame(
                 {
-                    "code": [manual_code] * len(unique_emails),
-                    "email": unique_emails,
+                    "Code Cours": [manual_code] * len(unique_emails),
+                    "Email Etudiant": unique_emails,
                 }
             )
 
+            st.success(
+                f"✅ **{len(unique_emails)} email(s) valide(s)** prêt(s) pour l'exportation."
+            )
+
+            # --- APERÇU / PRÉVISUALISATION DU CSV ---
+            st.subheader("👁️ Aperçu des données du CSV")
+            st.dataframe(
+                manual_df,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            # Conversion en CSV (sans les en-têtes conformément aux exigences précédentes)
             csv_buffer = BytesIO()
             manual_df.to_csv(
                 csv_buffer, index=False, header=False, encoding="utf-8-sig"
             )
             csv_buffer.seek(0)
 
-            st.success(
-                f"✅ CSV prêt avec **{len(unique_emails)} email(s) `@ism.edu.sn` valide(s)** !"
-            )
-
+            # Bouton de téléchargement
             st.download_button(
                 label="📥 Télécharger le fichier CSV",
                 data=csv_buffer,
                 file_name=f"manuel_{manual_code}.csv",
                 mime="text/csv",
+                type="primary",
             )
         else:
             st.error("Aucun email valide `@ism.edu.sn` disponible pour la génération.")

@@ -6,7 +6,7 @@ import streamlit as st
 
 # 1. Configuration de la page
 st.set_page_config(
-    page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
+    page_title="RAJOUT MULTI-CLASSE", page_icon="🛠️", layout="centered"
 )
 
 # Initialisation du session_state
@@ -25,8 +25,8 @@ def reset_form():
     st.session_state["invalid_corrections"] = {}
 
 
-st.title("🛠️ GÉNÉRATEUR MANUEL RAPIDE")
-st.write("Attribuez facilement un code de cours à une liste d'adresses email.")
+st.title("🛠️ RAJOUT MULTI-CLASSE")
+st.write("Fonctionnalité permettant de rajouter simultanément plusieurs étudiants de  classes à un même cours en ligne.")
 
 st.markdown("---")
 

@@ -9,7 +9,7 @@ st.set_page_config(
     page_title="Générateur Manuel Rapide", page_icon="🛠️", layout="centered"
 )
 
-# Initialisation des variables dans le session_state
+# Initialisation du session_state
 if "manual_code_input" not in st.session_state:
     st.session_state["manual_code_input"] = ""
 if "manual_emails_input" not in st.session_state:
@@ -19,7 +19,7 @@ if "invalid_corrections" not in st.session_state:
 
 
 def reset_form():
-    """Efface le contenu des champs de saisie et les réinitialisations."""
+    """Efface le contenu des champs de saisie."""
     st.session_state["manual_code_input"] = ""
     st.session_state["manual_emails_input"] = ""
     st.session_state["invalid_corrections"] = {}
@@ -30,7 +30,6 @@ st.write("Attribuez facilement un code de cours à une liste d'adresses email.")
 
 st.markdown("---")
 
-# Expression régulière pour valider le format standard d'un email
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
 
@@ -39,11 +38,11 @@ def is_valid_email(email: str) -> bool:
     return re.match(EMAIL_REGEX, email) is not None
 
 
-# 2. Formulaire de saisie principal
+# 2. Formulaire de saisie
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    manual_code = st.text_input(
+    manual_code_raw = st.text_input(
         "Code du cours",
         placeholder="ex: INF101",
         key="manual_code_input",
@@ -57,6 +56,9 @@ with col2:
         key="manual_emails_input",
     )
 
+# Nettoyage automatique des espaces
+manual_code = manual_code_raw.replace(" ", "").upper()
+
 # Boutons d'action
 btn_col1, btn_col2 = st.columns([3, 1])
 
@@ -66,15 +68,15 @@ with btn_col1:
 with btn_col2:
     st.button("🗑️ Vider", on_click=reset_form, help="Réinitialiser le formulaire")
 
-# 3. Traitement, Détection & Correction
+# 3. Traitement
 if generate_btn or "invalid_emails_list" in st.session_state:
     if manual_code and manual_emails_input:
-        # Traitement initial lors du clic sur le bouton principal
         if generate_btn:
+            # .replace(" ", "") supprime TOUS les espaces (au début, au milieu, à la fin)
             raw_emails = [
-                e.strip().lower()
+                e.replace(" ", "").lower()
                 for e in manual_emails_input.splitlines()
-                if e.strip()
+                if e.replace(" ", "") != ""
             ]
 
             valid_emails = [e for e in raw_emails if is_valid_email(e)]
@@ -89,18 +91,15 @@ if generate_btn or "invalid_emails_list" in st.session_state:
         valid_emails = st.session_state.get("valid_emails_list", [])
         invalid_emails = st.session_state.get("invalid_emails_list", [])
 
-        # --- SECTION DE CORRECTION DES EMAILS INVALIDES ---
+        # Interface de correction
         if invalid_emails:
             st.warning(
-                f"⚠️ **{len(invalid_emails)} email(s) au format invalide détecté(s).** "
-                "Vous pouvez les corriger directement ci-dessous :"
+                f"⚠️ **{len(invalid_emails)} email(s) au format invalide détecté(s).**"
             )
 
-            # Formulaire d'édition pour les adresses erronées
             with st.expander(
                 "✏️ Modifier les adresses incorrectes", expanded=True
             ):
-                corrected_from_form = []
                 for idx, bad_email in enumerate(invalid_emails):
                     new_email = st.text_input(
                         f"Corriger l'adresse #{idx+1}",
@@ -109,14 +108,14 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                         ),
                         key=f"corr_{idx}",
                     )
+                    # Nettoyage automatique des espaces également sur la saisie de correction
                     st.session_state["invalid_corrections"][bad_email] = (
-                        new_email.strip().lower()
+                        new_email.replace(" ", "").lower()
                     )
 
                 if st.button("🔄 Appliquer les corrections"):
                     st.rerun()
 
-            # Récupération des emails corrigés qui sont maintenant valides
             fixed_emails = []
             still_invalid = []
             for original, corrected in st.session_state[
@@ -132,12 +131,11 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                     f"Certaines adresses sont toujours invalides : {', '.join(still_invalid)}"
                 )
 
-            # Fusion des emails valides initiaux + les emails corrigés
             all_valid_emails = valid_emails + fixed_emails
         else:
             all_valid_emails = valid_emails
 
-        # Dédoublonnage des emails valides (conservant l'ordre)
+        # Dédoublonnage
         unique_emails = list(dict.fromkeys(all_valid_emails))
         duplicates_count = len(all_valid_emails) - len(unique_emails)
 
@@ -146,7 +144,7 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 f"ℹ️ {duplicates_count} doublon(s) supprimé(s) automatiquement."
             )
 
-        # Génération du CSV si au moins une adresse valide existe
+        # Génération CSV
         if unique_emails:
             manual_df = pd.DataFrame(
                 {
@@ -172,6 +170,6 @@ if generate_btn or "invalid_emails_list" in st.session_state:
                 mime="text/csv",
             )
         else:
-            st.error("Aucun email valide n'est disponible pour la génération.")
+            st.error("Aucun email valide disponible pour la génération.")
     else:
         st.error("Veuillez remplir le code de cours et la liste d'emails.")
